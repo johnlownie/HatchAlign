@@ -5,7 +5,6 @@ import numpy as np
 import argparse
 import imutils
 import nt as nt
-import sys
 import requests
 import cv2
 import time
@@ -20,11 +19,14 @@ args = vars(ap.parse_args())
 
 # check for roborio
 try:
-    # requests.get("http://" + args["roborio"] + ":1181")
-    requests.get("http://192.168.24.90")
+    requests.get("http://" + args["roborio"] + ":1181")
+    # requests.get("http://192.168.24.90")
 except:
     print("FATAL! Roborio not found")
     exit(1)
+
+# intialize the network tables
+nt.init(roborio)
 
 # set the video stream
 if args.get("video", True):
@@ -46,7 +48,7 @@ time.sleep(2.0)
 # set some variables
 lower = tuple(args["lower"]) # lower bounds of retro-reflective tape
 upper = tuple(args["upper"]) # upper bounds of retro-reflective tape
-centerX = width //2
+centerX = width // 2         # center x-value of frame
 
 # keep looping
 while True:
@@ -66,12 +68,12 @@ while True:
     hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
     # ratio = frame.shape[0] / float(resized.shape[0])
 
-    # construct a mask for the color "green", then erode and dilate
+    # construct a mask for the bounds, then erode and dilate
     mask = cv2.inRange(hsv, lower, upper)
     mask = cv2.erode(mask, None, iterations=2)
     mask = cv2.dilate(mask, None, iterations=2)
 
-    # find contours in the mask and initialize the current (x, y) center of the ball
+    # find contours in the mask
     cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     cnts = imutils.grab_contours(cnts)
     
@@ -86,12 +88,13 @@ while True:
         # print("Area: ", area)
         if area > 100: # ignore any noise
             M = cv2.moments(c)
-            cX = int((M["m10"] / M["m00"])) # * ratio)
-            cY = int((M["m01"] / M["m00"])) # * ratio)
+            cX = int((M["m10"] / M["m00"]))
+            cY = int((M["m01"] / M["m00"]))
 
             ((x, y), radius) = cv2.minEnclosingCircle(c)
-            cv2.circle(resized, (int(x), int(y)), int(radius), (255, 255, 0), 1)
+            cv2.circle(resized, (int(x), int(y)), int(radius), (255, 255, 0), 1) # draw a blue cirle around the contour
            
+            # find the contours closest to the center x-value of the frame
             if cX > centerX:
                 if cX < min_right:
                     min_right = cX
@@ -101,12 +104,7 @@ while True:
                     min_left = cX
                     left_contour = c
     
-    #     (xg, yg, wg, hg) = cv2.boundingRect(c)
-    #     if wg > 10 and hg > 10:
-    #         # draw the circle and centroid on the frame then update tracking points
-    #         cv2.rectangle(frame, (xg, yg), (xg + wg, yg + hg), (0, 255, 0), 2)
-    
-    # draw circle around nearest contours
+    # draw a yellow circle around nearest contours
     if right_contour is not None:
         ((rX, rY), radius) = cv2.minEnclosingCircle(right_contour)
         cv2.circle(resized, (int(rX), int(rY)), int(radius), (0, 255, 255), 1)
@@ -116,16 +114,20 @@ while True:
         cv2.circle(resized, (int(lX), int(lY)), int(radius), (0, 255, 255), 1)
         
     # print("cX: {:.2f}, lX: {:.2f}, rX: {:.2f}".format(centerX, lX, rX))
+    # interpolate the distance between the centers of the two nearest contours for 11.5 inches
     distance = interp1d([lX, rX], [0, 11.5])
     try:
         offset = distance(centerX)
     except ValueError:
-        print("Error")
+        print("Error in interpolation")
         pass
         
     direction = "left" if 5.75 - offset > 0 else "right" if 5.75 - offset < 0 else "center"
-    print("The robot is {:.2f} inches to the {}.".format(abs(5.75 - offset), direction))
+    print("The robot is {:.2f} inches to the {} of center.".format(abs(5.75 - offset), direction))
 
+    # send the data to the roborio
+    nt.publish(direction, abs(5.75 - offset))
+    
     # draw center line
     cv2.line(resized, (centerX, 0), (centerX, height), (255, 255, 255), 1)
     
