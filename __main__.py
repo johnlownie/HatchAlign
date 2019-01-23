@@ -17,16 +17,10 @@ ap.add_argument("-u", "--upper", nargs="+", type=int, default=[104, 13, 255], he
 ap.add_argument("-v", "--video", help="path to the video file")
 args = vars(ap.parse_args())
 
-# check for roborio
-try:
-    requests.get("http://" + args["roborio"] + ":1181")
-    # requests.get("http://192.168.24.90")
-except:
-    print("FATAL! Roborio not found")
-    exit(1)
-
+print("Starting network tables...")
 # intialize the network tables
-nt.init(roborio)
+nt.init(args["roborio"])
+print("Is it blocking?")
 
 # set the video stream
 if args.get("video", True):
