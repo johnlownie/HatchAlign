@@ -15,6 +15,7 @@ ap.add_argument("-r", "--roborio", nargs="?", default="192.168.24.115", help="ad
 ap.add_argument("-l", "--lower", nargs="+", type=int, default=[46, 0, 199], help="HSV lower bounds")
 ap.add_argument("-u", "--upper", nargs="+", type=int, default=[101, 82, 255], help="HSV upper bounds")
 ap.add_argument("-v", "--video", help="path to the video file")
+ap.add_argument("-s", "--stream", const="stream", help="display a window of the frames")
 args = vars(ap.parse_args())
 
 # intialize the network tables
@@ -109,13 +110,14 @@ while True:
     # interpolate the distance between the centers of the two nearest contours for 11.5 inches
     try:
         distance = interp1d([lX, rX], [0, 11.5])
-        offset = distance(centerX)
+        distance_from_left = distance(centerX)
+        offset_from_center = 5.75 - distance_from_left
         
-        direction = "left" if 5.75 - offset > 0 else "right" if 5.75 - offset < 0 else "center"
-        print("The robot is {:.2f} inches to the {} of center.".format(abs(5.75 - offset), direction))
+        direction = "left" if offset_from_center > 0 else "right" if offset_from_center < 0 else "center"
+        print("The robot is {:.2f} inches to the {} of center.".format(abs(offset_from_center), direction))
 
         # send the data to the roborio
-        nt.publish(direction, abs(5.75 - offset))
+        nt.publish(offset_from_center)
     except (NameError, ValueError) as e:
         print("Error in interpolation",e)
         pass
@@ -124,7 +126,8 @@ while True:
     cv2.line(resized, (centerX, 0), (centerX, height), (255, 255, 255), 1)
     
     # show the frame to our screen and increment the frame counter
-    cv2.imshow("Frame:", resized)
+    if args.get(["stream"], True):
+        cv2.imshow("Frame:", resized)
     
     # update the FPS counter
     fps.update()

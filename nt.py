@@ -27,12 +27,11 @@ def init(ip):
             
     vision_table = NetworkTables.getTable("SmartDashboard/Vision")
 
-def publish(rotation, distance):
+def publish(roffset_from_center):
     global vision_table
     
     if notified[0]:
-        vision_table.putString("Motor", rotation)
-        vision_table.putNumber("Distance", distance)
+        vision_table.putNumber("Offset", offset_from_center)
 
 def getMode():
     if bool(vision_table.getNumber("isTeleop", 1.0)):
