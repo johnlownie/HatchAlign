@@ -11,16 +11,14 @@ import time
 
 # parse arguments
 ap = argparse.ArgumentParser()
-ap.add_argument("-r", "--roborio", nargs="?", default="roborio-5024-frc.local", help="address to the roborio")
-ap.add_argument("-l", "--lower", nargs="+", type=int, default=[44, 0, 210], help="HSV lower bounds")
-ap.add_argument("-u", "--upper", nargs="+", type=int, default=[104, 13, 255], help="HSV upper bounds")
+ap.add_argument("-r", "--roborio", nargs="?", default="192.168.24.115", help="address to the roborio")
+ap.add_argument("-l", "--lower", nargs="+", type=int, default=[46, 0, 199], help="HSV lower bounds")
+ap.add_argument("-u", "--upper", nargs="+", type=int, default=[101, 82, 255], help="HSV upper bounds")
 ap.add_argument("-v", "--video", help="path to the video file")
 args = vars(ap.parse_args())
 
-print("Starting network tables...")
 # intialize the network tables
 nt.init(args["roborio"])
-print("Is it blocking?")
 
 # set the video stream
 if args.get("video", True):
@@ -109,18 +107,18 @@ while True:
         
     # print("cX: {:.2f}, lX: {:.2f}, rX: {:.2f}".format(centerX, lX, rX))
     # interpolate the distance between the centers of the two nearest contours for 11.5 inches
-    distance = interp1d([lX, rX], [0, 11.5])
     try:
+        distance = interp1d([lX, rX], [0, 11.5])
         offset = distance(centerX)
-    except ValueError:
-        print("Error in interpolation")
-        pass
         
-    direction = "left" if 5.75 - offset > 0 else "right" if 5.75 - offset < 0 else "center"
-    print("The robot is {:.2f} inches to the {} of center.".format(abs(5.75 - offset), direction))
+        direction = "left" if 5.75 - offset > 0 else "right" if 5.75 - offset < 0 else "center"
+        print("The robot is {:.2f} inches to the {} of center.".format(abs(5.75 - offset), direction))
 
-    # send the data to the roborio
-    nt.publish(direction, abs(5.75 - offset))
+        # send the data to the roborio
+        nt.publish(direction, abs(5.75 - offset))
+    except (NameError, ValueError) as e:
+        print("Error in interpolation",e)
+        pass
     
     # draw center line
     cv2.line(resized, (centerX, 0), (centerX, height), (255, 255, 255), 1)

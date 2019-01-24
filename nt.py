@@ -31,7 +31,7 @@ def publish(rotation, distance):
     global vision_table
     
     if notified[0]:
-        vision_table.putNumber("Motor", rotation)
+        vision_table.putString("Motor", rotation)
         vision_table.putNumber("Distance", distance)
 
 def getMode():
