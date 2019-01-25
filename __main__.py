@@ -15,10 +15,10 @@ ap.add_argument("-r", "--roborio", nargs="?", default="192.168.24.115", help="ad
 ap.add_argument("-l", "--lower", nargs="+", type=int, default=[46, 0, 199], help="HSV lower bounds")
 ap.add_argument("-u", "--upper", nargs="+", type=int, default=[101, 82, 255], help="HSV upper bounds")
 ap.add_argument("-v", "--video", help="path to the video file")
-ap.add_argument("-s", "--stream", const="stream", help="display a window of the frames")
+ap.add_argument("-s", "--stream", nargs="?", const="stream", help="display a window of the frames")
 args = vars(ap.parse_args())
 
-# intialize the network tables
+# intialize the network tables, this will block until it connects to the roborio
 nt.init(args["roborio"])
 
 # set the video stream
