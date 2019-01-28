@@ -1,24 +1,29 @@
-from imutils.video import VideoStream
-from imutils.video import FPS
-from scipy.interpolate import interp1d
+# import necessary libraries
 import numpy as np
 import argparse
 import imutils
-import nt as nt
-import requests
-import cv2
 import time
+import threading
+import cv2
+from imutils.video import VideoStream
+from imutils.video import FPS
+from networktables import NetworkTables
+from networktables import NetworkTablesInstance
+from scipy.interpolate import interp1d
 
 # parse arguments
 ap = argparse.ArgumentParser()
-ap.add_argument("-r", "--roborio", nargs="?", default="192.168.24.115", help="address to the roborio")
-ap.add_argument("-l", "--lower", nargs="+", type=int, default=[46, 0, 199], help="HSV lower bounds")
-ap.add_argument("-u", "--upper", nargs="+", type=int, default=[101, 82, 255], help="HSV upper bounds")
+ap.add_argument("-r", "--roborio", nargs="?", default="192.168.24.25", help="address to the roborio")
+ap.add_argument("-l", "--lower", nargs="+", type=int, default=[113, 0, 197], help="HSV lower bounds")
+ap.add_argument("-u", "--upper", nargs="+", type=int, default=[157, 10, 255], help="HSV upper bounds")
 ap.add_argument("-v", "--video", help="path to the video file")
+ap.add_argument("-s", "--show", nargs="?", const="show", help="display a window of the frames")
 args = vars(ap.parse_args())
 
-# intialize the network tables
-nt.init(args["roborio"])
+# connect to the roborio network tables
+print("Connecting to ", args["roborio"])
+NetworkTables.initialize(server=args["roborio"])
+livewindow = NetworkTablesInstance.getDefault().getTable("Shuffleboard/LiveWindow")
 
 # set the video stream
 if args.get("video", True):
@@ -34,13 +39,16 @@ else:
 
 fps = FPS().start()
 
-# allow the camera or video file to load
+# allow networktables, camera or video file to load
 time.sleep(2.0)
+
+print("Video source W:", width, " - H:", height)
 
 # set some variables
 lower = tuple(args["lower"]) # lower bounds of retro-reflective tape
 upper = tuple(args["upper"]) # upper bounds of retro-reflective tape
-centerX = width // 2         # center x-value of frame
+centerX = 300         # center x-value of frame
+lX = lY = rX = rY = 0
 
 # keep looping
 while True:
@@ -71,13 +79,13 @@ while True:
     
     # find closest contours to center on each side
     min_left = 0
-    min_right = width
+    min_right = 600
     left_contour = None
     right_contour = None
     
     for c in cnts:
         area = cv2.contourArea(c)
-        # print("Area: ", area)
+        # print("ML: ", min_left, " - MR: ", min_right)
         if area > 100: # ignore any noise
             M = cv2.moments(c)
             cX = int((M["m10"] / M["m00"]))
@@ -105,26 +113,29 @@ while True:
         ((lX, lY), radius) = cv2.minEnclosingCircle(left_contour)
         cv2.circle(resized, (int(lX), int(lY)), int(radius), (0, 255, 255), 1)
         
-    # print("cX: {:.2f}, lX: {:.2f}, rX: {:.2f}".format(centerX, lX, rX))
     # interpolate the distance between the centers of the two nearest contours for 11.5 inches
-    try:
-        distance = interp1d([lX, rX], [0, 11.5])
-        offset = distance(centerX)
+    if lX > 0 and rX > 0:
+        # print("cX: {:.2f}, lX: {:.2f}, rX: {:.2f}".format(centerX, lX, rX))
+        try:
+            distance = interp1d([lX, rX], [0, 11.5])
+            distance_from_left = distance(centerX)
+            offset_from_center = 5.75 - distance_from_left
         
-        direction = "left" if 5.75 - offset > 0 else "right" if 5.75 - offset < 0 else "center"
-        print("The robot is {:.2f} inches to the {} of center.".format(abs(5.75 - offset), direction))
+            direction = "left" if offset_from_center > 0 else "right" if offset_from_center < 0 else "center"
+            # print("The robot is {:.2f} inches to the {} of center.".format(abs(offset_from_center), direction))
 
-        # send the data to the roborio
-        nt.publish(direction, abs(5.75 - offset))
-    except (NameError, ValueError) as e:
-        print("Error in interpolation",e)
-        pass
+            # send the data to the roborio
+            livewindow.putNumber("Offset", offset_from_center)
+        except (NameError, ValueError) as e:
+            print("Error in interpolation",e)
+            pass
     
     # draw center line
     cv2.line(resized, (centerX, 0), (centerX, height), (255, 255, 255), 1)
     
     # show the frame to our screen and increment the frame counter
-    cv2.imshow("Frame:", resized)
+    if args.get("show", True):
+        cv2.imshow("Frame:", resized)
     
     # update the FPS counter
     fps.update()
@@ -136,8 +147,8 @@ while True:
 
 # stop the timer and display FPS information
 fps.stop()
-print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
-print("[INFO] FPS: {:.2f}".format(fps.fps()))
+print("Elasped time: {:.2f}".format(fps.elapsed()))
+print("FPS: {:.2f}".format(fps.fps()))
 
 # close the video stream
 if not args.get("video", False):
@@ -147,3 +158,4 @@ else:
 
 # close all windows
 cv2.destroyAllWindows()
+
