@@ -131,8 +131,8 @@ while True:
             distance_from_left = distance(centerX)
             offset_from_center = 5.75 - distance_from_left
         
-            direction = "left" if offset_from_center > 0 else "right" if offset_from_center < 0 else "center"
-            print("The slider is {:.2f} inches {} of center".format(abs(offset_from_center), direction))
+            direction = "right" if offset_from_center > 0 else "left" if offset_from_center < 0 else "center"
+            print("Move the slider {:.2f} inches {}".format(abs(offset_from_center), direction))
 
             # send the data to the roborio
             livewindow.putNumber("Offset", offset_from_center)
