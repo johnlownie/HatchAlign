@@ -1,10 +1,12 @@
 # import necessary libraries
 import numpy as np
 import argparse
+import cv2
 import imutils
+import sys
 import time
 import threading
-import cv2
+
 from imutils.video import VideoStream
 from imutils.video import FPS
 from networktables import NetworkTables
@@ -27,15 +29,20 @@ livewindow = NetworkTablesInstance.getDefault().getTable("Shuffleboard/LiveWindo
 
 # set the video stream
 if args.get("video", True):
+    # vs = cv2.VideoCapture(args["video"])
     vs = cv2.VideoCapture(args["video"])
     if vs.isOpened():
         width = int(vs.get(3))
         height = int(vs.get(4))
+    else:
+        sys.exit("Cannot open video")
 else:
     vs = VideoStream(src=0).start()
     if vs.stream.isOpened():
         width = int(vs.stream.get(3))
         height = int(vs.stream.get(4))
+    else:
+        sys.exit("Cannot open stream")
 
 fps = FPS().start()
 
@@ -61,6 +68,9 @@ while True:
     # if we are viewing a video and did not grab a frame, we are at end of video
     if frame is None:
         break
+    
+    # update the FPS counter
+    fps.update()
 
     # resize the frame, blur it, and convert it to the HSV colour space
     resized = imutils.resize(frame, width=600)
@@ -136,14 +146,11 @@ while True:
     # show the frame to our screen and increment the frame counter
     if args.get("show", True):
         cv2.imshow("Frame:", resized)
-    
-    # update the FPS counter
-    fps.update()
 
-    # if the 'q' key is pressed, stop the loop
-    key = cv2.waitKey(1) & 0xFF
-    if key == ord("q"):
-        break
+        # if the 'q' key is pressed, stop the loop
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord("q"):
+            break
 
 # stop the timer and display FPS information
 fps.stop()
