@@ -132,7 +132,7 @@ while True:
             offset_from_center = 5.75 - distance_from_left
         
             direction = "left" if offset_from_center > 0 else "right" if offset_from_center < 0 else "center"
-            # print("The robot is {:.2f} inches to the {} of center.".format(abs(offset_from_center), direction))
+            print("The slider is {:.2f} inches {} of center".format(abs(offset_from_center), direction))
 
             # send the data to the roborio
             livewindow.putNumber("Offset", offset_from_center)

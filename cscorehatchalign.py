@@ -122,6 +122,7 @@ def main():
                 offset_from_center = (distance_between_targets / 2) - distance_from_left
 
                 direction = "left" if offset_from_center > 0 else "right" if offset_from_center < 0 else "center"
+                print("The slider is {:.2f} inches {} of center".format(abs(offset_from_center), direction))
 
                 livewindow.putNumber("Offset", offset_from_center)
             except (NameError, ValueError) as e:
