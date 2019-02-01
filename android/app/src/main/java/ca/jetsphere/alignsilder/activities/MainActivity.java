@@ -1,7 +1,9 @@
-package ca.jetsphere.alignsilder;
+package ca.jetsphere.alignsilder.activities;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+
+import ca.jetsphere.alignsilder.R;
 
 public class MainActivity extends AppCompatActivity {
 
