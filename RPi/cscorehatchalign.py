@@ -16,7 +16,7 @@ from scipy.interpolate import interp1d
 
 def main():
     # connect to the roborio network tables
-    NetworkTables.initialize(server="192.168.24.25")
+    NetworkTables.initialize(server="127.0.0.1")
     livewindow = NetworkTablesInstance.getDefault().getTable("Shuffleboard/LiveWindow")
 
     # initialize some variables
