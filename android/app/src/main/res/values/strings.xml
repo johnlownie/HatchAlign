@@ -1,3 +1,20 @@
 <resources>
-    <string name="app_name">AlignSilder</string>
+    <string name="app_name">AlignSlider</string>
+
+    <string name="btnResolution">Resolution</string>
+    <string name="btnRaw">Raw</string>
+    <string name="btnHSV">HSV</string>
+    <string name="btnThreshold">Threshold</string>
+    <string name="btnHue">Hue</string>
+    <string name="btnSaturation">Saturation</string>
+    <string name="btnValue">Value</string>
+    <string name="btnReset">Reset</string>
+    <string name="btnTrack">Track</string>
+
+    <string name="request_permission">This app needs camera permission</string>
+
+    <string name="error_connect_failed">Connection Failed</string>
+    <string name="error_connect_lost">Connection Lost</string>
+
+    <string name="flashlight">Flashlight</string>
 </resources>

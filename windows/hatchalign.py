@@ -15,7 +15,7 @@ from scipy.interpolate import interp1d
 
 # parse arguments
 ap = argparse.ArgumentParser()
-ap.add_argument("-r", "--roborio", nargs="?", default="192.168.24.25", help="address to the roborio")
+ap.add_argument("-r", "--roborio", nargs="?", default="127.0.0.1", help="address to the roborio")
 ap.add_argument("-l", "--lower", nargs="+", type=int, default=[113, 0, 197], help="HSV lower bounds")
 ap.add_argument("-u", "--upper", nargs="+", type=int, default=[157, 10, 255], help="HSV upper bounds")
 ap.add_argument("-v", "--video", help="path to the video file")
