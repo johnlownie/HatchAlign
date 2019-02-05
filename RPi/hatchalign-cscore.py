@@ -1,72 +1,71 @@
 #!/usr/bin/env python3
 
 # import necessary libraries
-import argparse
+import numpy as np
+import cscore as cs
 import cv2
 import imutils
 import json
 import logging
-import numpy as np
 import time
 import wpilib
 
-from cscore import CameraServer
-from imutils.video import FPS, VideoStream
+from cscore import CameraServer, VideoSource, UsbCamera, MjpegServer
 from networktables import NetworkTables
 from networktables import NetworkTablesInstance
 from scipy.interpolate import interp1d
 
 def main():
-    # parse arguments
-    ap = argparse.ArgumentParser()
-    ap.add_argument("-w", "--width", type=int, default=640, help="set width of the frame")
-    ap.add_argument("-l", "--height", type=int, default=480, help="set height of the frame")
-    ap.add_argument("-d", "--display", type=int, default=0, help="stream to dashboard")
-    ap.add_argument("-n", "--num_frames", type=int, default=0, help="test frame rate with set number of frames")
-    args = vars(ap.parse_args())
-
     # setup up logging
     logging.basicConfig(level=logging.DEBUG)
 
-    # connect to the roborio network tables and get the table
+    # connect to the roborio network tables
     NetworkTables.initialize(server="192.168.1.106")
+
+    # get the table
     sd = NetworkTables.getTable("SmartDashboard")
 
     # initialize some variables
-    width = args["width"]
-    height = args["height"]
+    width = 640
+    height = 480
     min_area = 100
     centerX = width // 2
     distance_between_targets = 11.5
     lX = lY = rX = rY = 0
 
     # set up the camera
-    vs = VideoStream(src=0).start()
-    fps = FPS().start()
+    camServer = CameraServer.getInstance()
+    camera = cs.UsbCamera("rPi Camera 0", 0)
+    camera.setVideoMode(cs.VideoMode.PixelFormat.kMJPEG, width, height, 30)
 
-    # setup the stream if required
-    if args["display"] > 0:
-        camServer = CameraServer.getInstance()
-        frameStream = camServer.putVideo("Frame", width, height)
-        maskStream = camServer.putVideo("Mask", width, height)
+    # mjpegServer = cs.MjpegServer("httpserver", 8081)
+    # mjpegServer.setSource(camera)
+
+    cvsink = cs.CvSink("cvsink")
+    cvsink.setSource(camera)
+
+    # cvSource = cs.CvSource("cvsource", cs.VideoMode.PixelFormat.kMJPEG, width, height, 30)
+    # cvMjpegServer = cs.MjpegServer("cvhttpserver", 8082)
+    # cvMjpegServer.setSource(cvSource)
+
+    outputStream = camServer.putVideo("Mask", width, height)
 
     # initialize frame holders to save time
     frame   = np.zeros(shape=(height, width, 3), dtype=np.uint8)
-    grayed  = np.zeros(shape=(height, width, 3), dtype=np.uint8)
     blurred = np.zeros(shape=(height, width, 3), dtype=np.uint8)
     hsv     = np.zeros(shape=(height, width, 3), dtype=np.uint8)
     mask    = np.zeros(shape=(height, width, 3), dtype=np.uint8)
 
     count = 0
 
-    # while True:
-    while fps._numFrames < args["num_frames"]:
-        frame = vs.read()
-        frame = imutils.resize(frame, width=width, height=height) # Initially 370 FPS 
+    while True:
+        time, frame = cvsink.grabFrame(frame)
+        if time == 0:
+            continue
 
-        # gray, blur frame and convert it to hsv color space
-        # blurred = cv2.GaussianBlur(frame, (5, 5), 0)  # drops FPS to 2 
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)  # drops FPS to 1.5 with blur
+        # blur frame and convert it to hsv color space
+        blurred = cv2.GaussianBlur(frame, (11, 11), 0)
+        hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
 
         # get the bounds from the dashboard
         lH = sd.getNumber("H-Lower", 0)
@@ -79,7 +78,7 @@ def main():
         uV = sd.getNumber("V-Upper", 255)
 
         # construct a mask for the bounds then erode and dilate it
-        mask = cv2.inRange(hsv, (lH, lS, lV), (uH, uS, uV))  # drops FPS to 10 wihout blur
+        mask = cv2.inRange(hsv, (lH, lS, lV), (uH, uS, uV))
         mask = cv2.erode(mask, None, iterations=2)
         mask = cv2.dilate(mask, None, iterations=2)
 
@@ -143,23 +142,10 @@ def main():
                 pass
 
         # draw a center line
-        # cv2.line(frame, (centerX, 0), (centerX, height), (255, 255, 255), 1)
+        cv2.line(frame, (centerX, 0), (centerX, height), (255, 255, 255), 1)
 
-        if args["display"] > 0:
-            frameStream.putFrame(frame)
-            maskStream.putFrame(mask)
-
-        # update the fps if set
-        if args["num_frames"] > 0:
-            fps.update()
-
-    # stop the timer and display the results
-    if args["num_frames"] > 0:
-        fps.stop()
-        print("[INFO] elapsed time: {:.2f}".format(fps.elapsed()))
-        print("[INFO] approx FPS: {:.2f}".format(fps.fps()))
-
-    vs.stop()
+        cvSource.putFrame(mask)
+        outputStream.putFrame(mask)
 
 if __name__ == "__main__":
     main()
