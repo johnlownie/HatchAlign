@@ -21,7 +21,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-w", "--width", type=int, default=640, help="set width of the frame")
     ap.add_argument("-l", "--height", type=int, default=480, help="set height of the frame")
-    ap.add_argument("-d", "--display", type=int, default=0, help="stream to dashboard")
+    ap.add_argument("-d", "--display", type=int, default=1, help="stream to dashboard")
     ap.add_argument("-n", "--num_frames", type=int, default=0, help="test frame rate with set number of frames")
     args = vars(ap.parse_args())
 
@@ -29,7 +29,7 @@ def main():
     logging.basicConfig(level=logging.DEBUG)
 
     # connect to the roborio network tables and get the table
-    NetworkTables.initialize(server="192.168.1.106")
+    NetworkTables.initialize(server="192.168.24.25")
     sd = NetworkTables.getTable("SmartDashboard")
 
     # initialize some variables
@@ -59,8 +59,8 @@ def main():
 
     count = 0
 
-    # while True:
-    while fps._numFrames < args["num_frames"]:
+    while True:
+    # while fps._numFrames < args["num_frames"]:
         frame = vs.read()
         frame = imutils.resize(frame, width=width, height=height) # Initially 370 FPS 
 
@@ -135,11 +135,11 @@ def main():
                 offset_from_center = (distance_between_targets / 2) - distance_from_left
 
                 direction = "left" if offset_from_center > 0 else "right" if offset_from_center < 0 else "center"
-                print("The slider is {:.2f} inches {} of center".format(abs(offset_from_center), direction))
+                # print("The slider is {:.2f} inches {} of center".format(abs(offset_from_center), direction))
 
                 sd.putNumber("Offset", offset_from_center)
             except (NameError, ValueError) as e:
-                print("Error in interpolation", e)
+                # print("Error in interpolation", e)
                 pass
 
         # draw a center line
