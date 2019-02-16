@@ -18,8 +18,8 @@ from scipy.interpolate import interp1d
 # parse arguments
 ap = argparse.ArgumentParser()
 ap.add_argument("-r", "--roborio", nargs="?", default="127.0.0.1", help="address to the roborio")
-ap.add_argument("-l", "--lower", nargs="+", type=int, default=[28, 0, 124], help="HSV lower bounds")
-ap.add_argument("-u", "--upper", nargs="+", type=int, default=[97, 37, 255], help="HSV upper bounds")
+ap.add_argument("-l", "--lower", nargs="+", type=int, default=[113, 0, 197], help="HSV lower bounds")
+ap.add_argument("-u", "--upper", nargs="+", type=int, default=[157, 10, 255], help="HSV upper bounds")
 ap.add_argument("-v", "--video", help="path to the video file")
 ap.add_argument("-s", "--show", nargs="?", const="show", help="display a window of the frames")
 args = vars(ap.parse_args())
